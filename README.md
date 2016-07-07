@@ -1,7 +1,7 @@
 Python control for Tikteck LED bulbs
 ====================================
 
-A simple Python API for controlling LED bulbs from [Tikteck](http://www.tikteck.com).
+A simple Python API for controlling LED bulbs from [Tikteck](http://www.tikteck.com). This code makes use of the PyBT2 branch of Mike Ryan's [PyBT](http://github.com/mikeryan/PyBT)
 
 Example use
 -----------
