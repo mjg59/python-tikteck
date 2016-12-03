@@ -131,9 +131,7 @@ class tikteck:
     self.packet_count += 1
     if self.packet_count > 65535:
       self.packet_count = 1
-    print enc_packet
     response = send_packet(self.sock, 0x15, enc_packet)
-    print response
 
   def set_state(self, red, green, blue, brightness):
     self.red = red
