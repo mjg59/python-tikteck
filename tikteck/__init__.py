@@ -5,24 +5,19 @@
 # This code is released under the terms of the MIT license. See the LICENSE file
 # for more details.
 
-import BDAddr
-from BluetoothSocket import BluetoothSocket, hci_devba
-import socket
+import random
 import sys
 import time
 
+from bluepy import btle
 from Crypto.Cipher import AES
 
-def hex_to_str(hex):
-    return str(bytearray(hex))
-
 def encrypt(key, data):
-  key = hex_to_str(reversed(key))
-  k = AES.new(key, AES.MODE_ECB)
-  data = reversed(list(k.encrypt(hex_to_str(reversed(data)))))
+  k = AES.new(bytes(reversed(key)), AES.MODE_ECB)
+  data = reversed(list(k.encrypt(bytes(reversed(data)))))
   rev = []
   for d in data:
-    rev.append(ord(d))
+    rev.append(d)
   return rev
  
 def generate_sk(name, password, data1, data2):
@@ -60,33 +55,13 @@ def encrypt_packet(sk, mac, packet):
 
     return packet
 
-def send_packet(sock, handle, data):
-  packet = bytearray([0x12, handle, 0x00])
-  for item in data:
-    packet.append(item)
-  sock.send(packet)
-  data = sock.recv(32)
-  response = []
-  for d in data:
-    response.append(ord(d))
-  return response
-
-def read_packet(sock, handle):
-  packet = bytearray([0x0a, handle, 0x00])
-  sock.send(packet)
-  data = sock.recv(32)
-  response = []
-  for d in data:
-    response.append(ord(d))
-  return response
-
 class tikteck:
   def __init__(self, mac, name, password):
     self.mac = mac
     self.macarray = mac.split(':')
     self.name = name
     self.password = password
-    self.packet_count = 2012
+    self.packet_count = random.randrange(0xffff)
     self.red = 0xff
     self.blue = 0xff
     self.green = 0xff
@@ -96,22 +71,16 @@ class tikteck:
     self.sk = sk
 
   def connect(self):
-    my_addr = hci_devba(0) # get from HCI0
-    dest = BDAddr.BDAddr(self.mac)
-    addr_type = BDAddr.TYPE_LE_PUBLIC
-    self.sock = BluetoothSocket(socket.AF_BLUETOOTH, socket.SOCK_SEQPACKET, socket.BTPROTO_L2CAP)
-    self.sock.bind_l2(0, my_addr, cid=4, addr_type=BDAddr.TYPE_LE_RANDOM)
-    self.sock.connect_l2(0, dest, cid=4, addr_type=addr_type)
-
+    self.device = btle.Peripheral(self.mac, addrType=btle.ADDR_TYPE_PUBLIC)
     data = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0, 0, 0, 0, 0, 0, 0, 0]
     enc_data = key_encrypt(self.name, self.password, data)
     packet = [0x0c]
     packet += data[0:8]
     packet += enc_data[0:8]
-    send_packet(self.sock, 0x1b, packet)
+    self.device.writeCharacteristic(0x1b, bytes(packet), withResponse=True)
     time.sleep(0.3)
-    data2 = read_packet(self.sock, 0x1b)
-    self.sk = generate_sk(self.name, self.password, data[0:8], data2[2:10])
+    data2 = self.device.readCharacteristic(0x1b)
+    self.sk = generate_sk(self.name, self.password, data[0:8], data2[1:9])
 
   def send_packet(self, msgid, command, data):
     packet = [0] * 20
@@ -131,7 +100,7 @@ class tikteck:
     self.packet_count += 1
     if self.packet_count > 65535:
       self.packet_count = 1
-    response = send_packet(self.sock, 0x15, enc_packet)
+    response = self.device.writeCharacteristic(0x15, bytes(enc_packet), withResponse=True)
 
   def set_state(self, red, green, blue, brightness):
     self.red = red
