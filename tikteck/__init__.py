@@ -77,9 +77,12 @@ class tikteck:
     packet = [0x0c]
     packet += data[0:8]
     packet += enc_data[0:8]
-    self.device.writeCharacteristic(0x1b, bytes(packet), withResponse=True)
-    time.sleep(0.3)
-    data2 = self.device.readCharacteristic(0x1b)
+    try:
+      self.device.writeCharacteristic(0x1b, bytes(packet), withResponse=True)
+      time.sleep(0.3)
+      data2 = self.device.readCharacteristic(0x1b)
+    except:
+      return False
     self.sk = generate_sk(self.name, self.password, data[0:8], data2[1:9])
 
   def send_packet(self, msgid, command, data):
@@ -100,21 +103,33 @@ class tikteck:
     self.packet_count += 1
     if self.packet_count > 65535:
       self.packet_count = 1
-    response = self.device.writeCharacteristic(0x15, bytes(enc_packet), withResponse=True)
+
+    # BLE connections may not be stable. Spend up to 10 seconds trying to
+    # reconnect before giving up.
+    initial = time.time()
+    while True:
+      if time.time() - initial >= 10:
+        return False
+      try:
+        response = self.device.writeCharacteristic(0x15, bytes(enc_packet), withResponse=True)
+        break
+      except:
+        self.connect()
+    return True
 
   def set_state(self, red, green, blue, brightness):
     self.red = red
     self.green = green
     self.blue = blue
     self.bright = brightness
-    self.send_packet(0xffff, 0xc1, [red, green, blue, brightness])
+    return self.send_packet(0xffff, 0xc1, [red, green, blue, brightness])
 
   def set_default_state(self, red, green, blue, brightness):
-    self.send_packet(0xffff, 0xc4, [red, green, blue, brightness])
+    return self.send_packet(0xffff, 0xc4, [red, green, blue, brightness])
 
   def set_rainbow(self, brightness, speed, mode, loop):
-    self.send_packet(0xffff, 0xca, [brightness, mode, speed, loop]) 
+    return self.send_packet(0xffff, 0xca, [brightness, mode, speed, loop])
 
   def set_mosquito(self, brightness):
-    self.send_packet(0xffff, 0xcb, [brightness, 0, 0, 0]) 
+    return self.send_packet(0xffff, 0xcb, [brightness, 0, 0, 0])
 
