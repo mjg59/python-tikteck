@@ -89,8 +89,7 @@ class tikteck:
     packet = [0] * 20
     packet[0] = self.packet_count & 0xff
     packet[1] = self.packet_count >> 8 & 0xff
-    packet[5] = msgid & 0xff
-    packet[6] = msgid & 0xff | 0x80
+    packet[5] = int(self.macarray[5], 16)
     packet[7] = command
     packet[8] = 0x69
     packet[9] = 0x69
