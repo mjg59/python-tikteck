@@ -8,11 +8,11 @@ import warnings
 
 dynamic_requires = []
 
-version = 0.4
+version = 0.5
 
 setup(
     name='tikteck',
-    version=0.4,
+    version=0.5,
     author='Matthew Garrett',
     author_email='mjg59@srcf.ucam.org',
     url='http://github.com/mjg59/python-tikteck',
